@@ -1,62 +1,71 @@
 import React from 'react';
-import moment from 'moment';
 import DayPicker, { DateUtils } from 'react-day-picker';
-import YearMonthForm from './YearMonthDateNavigation';
-
-
+import moment from 'moment';
+import cx from 'classnames';
+import YearMonthForm from './YearMonthForm';
+import s from './DatePicker.scss';
 
 const currentYear = new Date().getFullYear();
 const fromMonth = new Date(currentYear, 0, 1, 0, 0);
 const toMonth = new Date(currentYear + 10, 11, 31, 23, 59);
-const overlayStyle = {
-  position: 'absolute',
-  background: 'white',
-  boxShadow: '0 2px 5px rgba(0, 0, 0, .15)'
-};
 
-export default class YearMonthDateNavigation extends React.Component {
+class DatePicker extends React.Component {
   constructor(props, context) {
     super(props, context);
     this.state = {
       from: null,
       to: null,
+      showOverlay: false,
       value: moment().format('L'), // The value of the input field
       month: new Date(), // The month to display in the calendar
-      showDatePicker: false // Show/Hide date picker
+      showDatePicker: false, // Show/Hide date picker
+      enteredTo: null
     };
-    let clickedInside = false;
+    this.clickedInside = false;
+    this.input = null;
     this.showCurrentDate = this.showCurrentDate.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
     this.handleDayClick = this.handleDayClick.bind(this);
     this.handleYearMonthChange = this.handleYearMonthChange.bind(this);
     this.handleContainerMouseDown = this.handleContainerMouseDown.bind(this);
     this.handleInputBlur = this.handleInputBlur.bind(this);
+    this.resetShowOverlay = this.resetShowOverlay.bind(this);
+    this.reset = this.reset.bind(this);
+  }
+
+  reset() {
+    this.setState({
+      from: null,
+      to: null,
+      enteredTo: null
+    });
+  }
+  resetShowOverlay() {
+    this.setState({
+      showOverlay: !this.state.showOverlay
+    });
   }
   showCurrentDate() {
     this.setState({
       showDatePicker: true
     });
+    this.dateInput.focus();
     //  this.daypicker.showMonth(this.state.month);
   }
-handleInputBlur () {
+  handleInputBlur() {
     const showDatePicker = this.clickedInside;
-
-
-    // Force input's focus if blur event was caused by clicking on the calendar
-    if (showDatePicker) {
-     this.refs.dateInput.focus();
-      //this.input.focus();
-    }
-    
     this.setState({
       showDatePicker
     });
+
+    // Force input's focus if blur event was caused by clicking on the calendar
+    if (showDatePicker) {
+      this.dateInput.focus();
+    }
   }
-  handleContainerMouseDown () {
+  handleContainerMouseDown() {
     this.clickedInside = true;
-    // The input's onBlur method is called from a queue right after onMouseDown event.
-    // setTimeout adds another callback in the queue, but is called later than onBlur event
-     setTimeout(() => {
+    setTimeout(() => {
       this.clickedInside = false;
     }, 0);
   }
@@ -81,57 +90,58 @@ handleInputBlur () {
   handleDayClick(day) {
     const range = DateUtils.addDayToRange(day, this.state);
     this.setState(range);
-    if(this.state.from && this.state.to){
-        this.setState({ showDatePicker: false });
+    if (this.state.from && this.state.to) {
+      this.setState({ showOverlay: false });
     }
-    
-    //console.log("clicked...");
   }
 
   handleYearMonthChange(month) {
-    //console.log("clicked-2...");
-    this.setState({ month});
+    this.setState({ month });
   }
 
   render() {
     const { from, to } = this.state;
-    const selectedDay = from ? moment(from).format('L') + '-' + moment(to).format('L') : ""; //moment(this.state.value, 'L', true).toDate();
-    
+    const fieldIcon = cx(s.fieldIcon, 'glyphicon glyphicon-calendar');
+    const selectedDay = from ? `${moment(from).format('L')} ${'-'} ${moment(to).format('L')}` : '';
     return (
-      <div onMouseDown={this.handleContainerMouseDown}>
-        <p>
+      <div className={s.datePickerContainer} onMouseDown={this.handleContainerMouseDown}>
+        <p className={s.fieldWrapper}>
           <input
             type="text"
-            ref="dateInput"
+            ref={input => { this.dateInput = input; }}
             value={selectedDay}
-            placeholder="mm/dd/yyyy"
+            placeholder="MM/DD/YYYY"
+            onClick={this.resetShowOverlay}
             onChange={this.handleInputChange}
             onFocus={this.showCurrentDate}
             onBlur={this.handleInputBlur}
           />
+          <i className={fieldIcon} onClick={this.showCurrentDate}/>
         </p>
         <div>
-         {this.state.showDatePicker &&
-          <div style={{ position: 'relative' }}>
-            <div style={overlayStyle}>
-        <DayPicker
-          month={this.state.month}
-          fromMonth={fromMonth}
-          toMonth={toMonth}
-          dateFormat="dd-mm-yyyy"
-          onDayClick={this.handleDayClick}
-          selectedDays={[from, { from, to }]}
-          canChangeMonth={false}
-          captionElement={
+          {this.state.showDatePicker &&
+          <div className={s.datePickerPosition}>
+            <div className={s.overlayStyle}>
+              <DayPicker
+                month={this.state.month}
+                fromMonth={fromMonth}
+                toMonth={toMonth}
+                dateFormat="dd-mm-yyyy"
+                onDayClick={this.handleDayClick}
+                selectedDays={[from, { from, to }]}
+                canChangeMonth={false}
+                captionElement={
             <YearMonthForm onChange={this.handleYearMonthChange} />
           }
-    />
-    </div>
+              />
+            </div>
           </div>}
-          
+
         </div>
       </div>
+
     );
   }
-  
 }
+
+export default DatePicker;
